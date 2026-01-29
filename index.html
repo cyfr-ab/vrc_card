@@ -126,7 +126,7 @@
     </main>
 
     <footer class="footer">
-      <p>VRChat 自己紹介カードメーカー</p>
+      <p>VRChat 自己紹介カードメーカー — Twitter・オフ会用</p>
     </footer>
   </div>
 
@@ -179,17 +179,6 @@
   const downloadBtn = $('downloadBtn');     // 旧「画像で保存」ボタン
   const copyTextBtn = $('copyTextBtn');     // テキストコピー
 
-  // もし actions がHTMLに無い/ボタンが無い場合の保険（勝手に壊れないように）
-  let screenshotBtn = $('screenshotBtn');  // 任意：追加してる場合
-  if (!screenshotBtn && !downloadBtn) {
-    if (previewSection) {
-      const actions = document.createElement('div');
-      actions.className = 'actions';
-      actions.innerHTML = `<button type="button" id="screenshotBtn" class="btn btn-primary">スクショ用に開く</button>`;
-      previewSection.appendChild(actions);
-      screenshotBtn = $('screenshotBtn');
-    }
-  }
 
   // ---- constants ----
   const labels = {
