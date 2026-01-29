@@ -214,12 +214,13 @@ downloadBtn.addEventListener('click', async () => {
       : 'modern';
     const bg = themeBgForExport[theme] || '#ffffff';
 
+    const width = 900;
+    const height = 1200;
     const canvas = await html2canvas(cardPreview, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
+      width,
+      height,
+      scale: 1,
       backgroundColor: bg,
-      logging: false,
     });
 
     const link = document.createElement('a');
