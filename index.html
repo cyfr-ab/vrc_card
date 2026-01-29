@@ -122,12 +122,6 @@
             <div class="card-decoration"></div>
           </div>
         </div>
-
-        <div class="actions">
-          <button type="button" id="screenshotBtn" class="btn btn-primary">
-            スクショ用に開く
-          </button>
-        </div>
       </section>
     </main>
 
@@ -137,13 +131,14 @@
   </div>
 
 <script>
-/* ===============================
-   プレビュー同期 + スクショ用ポップアップ
+  /* ===============================
+   VRChat 自己紹介カードメーカー
+   inline版：プレビュー同期 + 透かし + テーマ +（あれば）縁装飾 + スクショ用ポップアップ
    =============================== */
-
 (() => {
   const $ = (id) => document.getElementById(id);
 
+  // ---- DOM ----
   const fields = {
     vrName: $('vrName'),
     pronouns: $('pronouns'),
@@ -167,12 +162,38 @@
   const avatarInput = $('avatarInput');
   const avatarPreview = $('avatarPreview');
   const avatarPlaceholder = $('avatarPlaceholder');
+
+  const watermarkInput = $('watermarkInput');
+  const watermarkOpacity = $('watermarkOpacity');
+  const watermarkOpacityValue = $('watermarkOpacityValue');
+  const cardWatermark = $('cardWatermark');
+
   const cardPreview = $('cardPreview');
   const statusTagList = $('statusTagList');
   const statusTagsPreview = $('statusTagsPreview');
-  const themeButtons = document.querySelectorAll('.theme-btn');
-  const screenshotBtn = $('screenshotBtn');
 
+  const themeButtons = document.querySelectorAll('.theme-btn');
+  const decorationBtns = document.querySelectorAll('.decoration-btn');
+
+  // 既存があればそれを使う（元のHTMLに合わせる）
+  const downloadBtn = $('downloadBtn');     // 旧「画像で保存」ボタン
+  const copyTextBtn = $('copyTextBtn');     // テキストコピー
+
+  // もし actions がHTMLに無い/ボタンが無い場合の保険（勝手に壊れないように）
+  let screenshotBtn = $('screenshotBtn');  // 任意：追加してる場合
+  if (!screenshotBtn && !downloadBtn) {
+    // 何もボタンが無い場合だけ、自動で「スクショ用に開く」ボタンを生やす（任意）
+    const previewSection = document.querySelector('.preview-section');
+    if (previewSection) {
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      actions.innerHTML = `<button type="button" id="screenshotBtn" class="btn btn-primary">スクショ用に開く</button>`;
+      previewSection.appendChild(actions);
+      screenshotBtn = $('screenshotBtn');
+    }
+  }
+
+  // ---- constants ----
   const labels = {
     oneLiner: '一言',
     activeTime: '活動時間',
@@ -181,10 +202,19 @@
     hobby: '趣味・興味',
   };
 
+  const themeBgForExport = {
+    modern: '#ffffff',
+    industrial: '#1e1e1e',
+    fantasy: '#3d2c2a',
+    kawaii: '#fff8f5',
+    chocolate: '#f0e0cc',
+  };
+
+  // ---- utils ----
   function escapeHtml(str) {
-    const d = document.createElement('div');
-    d.textContent = str;
-    return d.innerHTML;
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
   }
 
   function wrapLine(label, value) {
@@ -192,76 +222,267 @@
     return `<span class="label">${label}</span>${escapeHtml(value.trim())}`;
   }
 
-  function updatePreview() {
-    preview.name.textContent = fields.vrName.value || 'VRChat名';
-    preview.pronouns.textContent = fields.pronouns.value || '';
-    preview.pronouns.style.display = preview.pronouns.textContent ? 'block' : 'none';
+  function getSelectedStatusTags() {
+    if (!statusTagList) return [];
+    const checkboxes = statusTagList.querySelectorAll('input[name="status"]:checked');
+    return Array.from(checkboxes).map((cb) => cb.value);
+  }
 
-    preview.oneLiner.innerHTML = wrapLine(labels.oneLiner, fields.oneLiner.value);
-    preview.activeTime.innerHTML = wrapLine(labels.activeTime, fields.activeTime.value);
-    preview.favorite.innerHTML = wrapLine(labels.favorite, fields.favorite.value);
-    preview.friendRequest.innerHTML = wrapLine(labels.friendRequest, fields.friendRequest.value);
-    preview.hobby.innerHTML = wrapLine(labels.hobby, fields.hobby.value);
-
+  function updateStatusTagsPreview() {
+    if (!statusTagsPreview) return;
+    const selected = getSelectedStatusTags();
     statusTagsPreview.innerHTML = '';
-    statusTagList.querySelectorAll('input:checked').forEach(cb => {
-      const s = document.createElement('span');
-      s.className = 'status-chip';
-      s.textContent = cb.value;
-      statusTagsPreview.appendChild(s);
+    selected.forEach((label) => {
+      const chip = document.createElement('span');
+      chip.className = 'status-chip';
+      chip.textContent = label;
+      statusTagsPreview.appendChild(chip);
     });
   }
 
-  Object.values(fields).forEach(el => {
-    el?.addEventListener('input', updatePreview);
-    el?.addEventListener('change', updatePreview);
-  });
-  statusTagList?.addEventListener('change', updatePreview);
+  function updatePreview() {
+    if (!cardPreview) return;
 
-  avatarInput?.addEventListener('change', e => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const r = new FileReader();
-    r.onload = () => {
-      avatarPreview.src = r.result;
-      avatarPreview.style.display = 'block';
-      avatarPlaceholder.style.display = 'none';
-    };
-    r.readAsDataURL(f);
-  });
+    const name = (fields.vrName?.value || '').trim() || 'VRChat名';
+    if (preview.name) preview.name.textContent = name;
 
-  themeButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      themeButtons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      cardPreview.className = 'card ' + btn.dataset.theme + ' deco-none';
+    const pro = (fields.pronouns?.value || '').trim();
+    if (preview.pronouns) {
+      preview.pronouns.textContent = pro;
+      preview.pronouns.style.display = pro ? 'block' : 'none';
+    }
+
+    if (preview.oneLiner) preview.oneLiner.innerHTML = wrapLine(labels.oneLiner, fields.oneLiner?.value || '');
+    if (preview.activeTime) preview.activeTime.innerHTML = wrapLine(labels.activeTime, fields.activeTime?.value || '');
+    if (preview.favorite) preview.favorite.innerHTML = wrapLine(labels.favorite, fields.favorite?.value || '');
+    if (preview.friendRequest) preview.friendRequest.innerHTML = wrapLine(labels.friendRequest, fields.friendRequest?.value || '');
+    if (preview.hobby) preview.hobby.innerHTML = wrapLine(labels.hobby, fields.hobby?.value || '');
+
+    updateStatusTagsPreview();
+  }
+
+  function getActiveThemeName() {
+    if (!cardPreview) return 'modern';
+    return cardPreview.classList.contains('industrial') ? 'industrial'
+      : cardPreview.classList.contains('fantasy') ? 'fantasy'
+      : cardPreview.classList.contains('kawaii') ? 'kawaii'
+      : cardPreview.classList.contains('chocolate') ? 'chocolate'
+      : 'modern';
+  }
+
+  // テーマ/装飾クラス組み立て（ボタンがある場合だけ）
+  function getCardBaseClasses() {
+    const themeBtn = document.querySelector('.theme-btn.active');
+    const theme = themeBtn?.dataset?.theme || 'modern';
+
+    const decoBtn = document.querySelector('.decoration-btn.active');
+    const deco = decoBtn?.dataset?.decoration || 'none';
+    const decoClass = deco === 'none' ? 'deco-none' : 'deco-' + deco;
+
+    let c = 'card ' + theme + ' ' + decoClass;
+    if (theme === 'chocolate') c += ' bg-check';
+    return c;
+  }
+
+  function applyCardClasses() {
+    if (!cardPreview) return;
+    cardPreview.className = getCardBaseClasses();
+  }
+
+  // ---- avatar ----
+  if (avatarInput && avatarPreview) {
+    avatarInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file || !file.type.startsWith('image/')) {
+        avatarPreview.style.display = 'none';
+        avatarPreview.src = '';
+        if (avatarPlaceholder) avatarPlaceholder.style.display = 'block';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        avatarPreview.src = reader.result;
+        avatarPreview.alt = 'アバター';
+        avatarPreview.style.display = 'block';
+        if (avatarPlaceholder) avatarPlaceholder.style.display = 'none';
+      };
+      reader.readAsDataURL(file);
     });
+  }
+
+  // ---- watermark ----
+  if (watermarkInput && cardWatermark) {
+    watermarkInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file || !file.type.startsWith('image/')) {
+        cardWatermark.innerHTML = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const opacity = watermarkOpacity ? Number(watermarkOpacity.value) : 30;
+        cardWatermark.innerHTML = `<img src="${reader.result}" alt="">`;
+        cardWatermark.style.opacity = String(opacity / 100);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (watermarkOpacity) {
+    watermarkOpacity.addEventListener('input', () => {
+      if (watermarkOpacityValue) watermarkOpacityValue.textContent = watermarkOpacity.value;
+      if (cardWatermark) cardWatermark.style.opacity = String(Number(watermarkOpacity.value) / 100);
+    });
+  }
+
+  // ---- theme ----
+  if (themeButtons?.length) {
+    themeButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        themeButtons.forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyCardClasses();
+      });
+    });
+  }
+
+  // ---- decoration (optional) ----
+  if (decorationBtns?.length) {
+    decorationBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        decorationBtns.forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyCardClasses();
+      });
+    });
+  }
+
+  // ---- inputs bind ----
+  Object.values(fields).forEach((el) => {
+    if (!el) return;
+    el.addEventListener('input', updatePreview);
+    el.addEventListener('change', updatePreview);
   });
 
-  screenshotBtn.addEventListener('click', async () => {
-    if (document.fonts?.ready) await document.fonts.ready;
+  if (statusTagList) statusTagList.addEventListener('change', updatePreview);
 
-    const win = window.open('', '_blank', 'width=980,height=1400');
-    if (!win) return alert('ポップアップがブロックされました');
-
-    const clone = cardPreview.cloneNode(true);
-    clone.style.width = '900px';
-    clone.style.height = '1200px';
-    clone.style.maxWidth = 'none';
-    clone.style.aspectRatio = 'auto';
-
-    win.document.write(`
-      <html><head><title>スクショ用</title>
-      <link rel="stylesheet" href="${location.origin + location.pathname.replace(/\/[^/]+$/, '')}/style.css">
-      </head>
-      <body style="margin:0;display:grid;place-items:center;background:#eee">
-      </body></html>
-    `);
-    win.document.close();
-    win.document.body.appendChild(clone);
-  });
-
+  // 初期反映
   updatePreview();
+  applyCardClasses();
+
+  // ---- text copy (optional) ----
+  if (copyTextBtn) {
+    copyTextBtn.addEventListener('click', () => {
+      const statusTags = getSelectedStatusTags();
+      const lines = [
+        '【VRChat 自己紹介】',
+        `名前: ${(fields.vrName?.value || '').trim()}`,
+        (fields.pronouns?.value || '').trim() ? `Pronouns: ${fields.pronouns.value.trim()}` : '',
+        statusTags.length ? `ステータス: ${statusTags.join(' / ')}` : '',
+        (fields.oneLiner?.value || '').trim() ? `一言: ${fields.oneLiner.value.trim()}` : '',
+        (fields.activeTime?.value || '').trim() ? `活動時間: ${fields.activeTime.value.trim()}` : '',
+        (fields.favorite?.value || '').trim() ? `好きなワールド・アバター: ${fields.favorite.value.trim()}` : '',
+        (fields.friendRequest?.value || '').trim() ? `フレンド申請: ${fields.friendRequest.value.trim()}` : '',
+        (fields.hobby?.value || '').trim() ? `趣味: ${fields.hobby.value.trim()}` : '',
+      ].filter(Boolean);
+
+      const text = lines.join('\n');
+      navigator.clipboard.writeText(text).then(
+        () => alert('テキストをコピーしました'),
+        () => alert('コピーに失敗しました')
+      );
+    });
+  }
+
+  // ---- screenshot popup (the “save” replacement) ----
+  async function openScreenshotPopup() {
+    try {
+      if (document.fonts?.ready) await document.fonts.ready;
+
+      const w = 980, h = 1400;
+      const win = window.open('', '_blank', `popup=yes,width=${w},height=${h}`);
+      if (!win) {
+        alert('ポップアップがブロックされました。ブラウザ設定で許可してください。');
+        return;
+      }
+
+      const EXPORT_W = 900;
+      const EXPORT_H = 1200;
+
+      // クローンを作る（画面側DOMは一切触らない）
+      const clone = cardPreview.cloneNode(true);
+      clone.removeAttribute('id');
+      clone.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+
+      // スクショ用：3:4 をpx固定
+      clone.style.width = EXPORT_W + 'px';
+      clone.style.height = EXPORT_H + 'px';
+      clone.style.maxWidth = 'none';
+      clone.style.aspectRatio = 'auto';
+      clone.style.margin = '0';
+      clone.style.transform = 'none';
+      clone.style.position = 'relative';
+
+      const theme = getActiveThemeName();
+      const bg = themeBgForExport[theme] || '#ffffff';
+
+      // clone内の画像ロード待ち
+      const imgs = Array.from(clone.querySelectorAll('img'));
+      await Promise.all(imgs.map((img) => new Promise((resolve) => {
+        if (img.complete && img.naturalWidth > 0) return resolve();
+        img.addEventListener('load', resolve, { once: true });
+        img.addEventListener('error', resolve, { once: true });
+      })));
+
+      // CSSをポップアップへコピー（cross-originは読めないので握りつぶす）
+      const cssText = Array.from(document.styleSheets).map((ss) => {
+        try { return Array.from(ss.cssRules).map((r) => r.cssText).join('\n'); }
+        catch { return ''; }
+      }).join('\n');
+
+      // Font linkも複製（Google Fonts）
+      const fontLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+        .map((l) => l.outerHTML)
+        .join('\n');
+
+      win.document.open();
+      win.document.write(`<!doctype html>
+<html lang="ja"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>スクショ用カード</title>
+${fontLinks}
+<style>
+${cssText}
+html,body{margin:0;background:${bg};}
+.stage{min-height:100vh;display:grid;place-items:center;padding:24px;}
+.hint{position:fixed;top:12px;left:12px;font-size:12px;opacity:.75;
+  background:rgba(255,255,255,.75);padding:8px 10px;border-radius:10px;user-select:none;}
+@media (prefers-color-scheme: dark){
+  .hint{background:rgba(0,0,0,.35);color:#fff;}
+}
+</style>
+</head><body>
+<div class="hint">このウィンドウをスクリーンショットしてください（3:4固定）</div>
+<div class="stage" id="mount"></div>
+</body></html>`);
+      win.document.close();
+
+      if (win.document.fonts?.ready) await win.document.fonts.ready;
+
+      const mount = win.document.getElementById('mount');
+      mount.appendChild(clone);
+
+      // 1フレーム待ってレイアウトを落ち着かせる
+      await new Promise((r) => win.requestAnimationFrame(() => r()));
+    } catch (e) {
+      alert('スクショ用ウィンドウを開けませんでした: ' + (e?.message || e));
+    }
+  }
+
+  // どのボタンでも同じ動作にする
+  if (screenshotBtn) screenshotBtn.addEventListener('click', openScreenshotPopup);
+  if (downloadBtn) downloadBtn.addEventListener('click', openScreenshotPopup);
 })();
 </script>
 
