@@ -126,7 +126,7 @@
     </main>
 
     <footer class="footer">
-      <p>VRChat 自己紹介カードメーカー — Twitter・オフ会用</p>
+      <p>VRChat 自己紹介カードメーカー</p>
     </footer>
   </div>
 
@@ -182,8 +182,6 @@
   // もし actions がHTMLに無い/ボタンが無い場合の保険（勝手に壊れないように）
   let screenshotBtn = $('screenshotBtn');  // 任意：追加してる場合
   if (!screenshotBtn && !downloadBtn) {
-    // 何もボタンが無い場合だけ、自動で「スクショ用に開く」ボタンを生やす（任意）
-    const previewSection = document.querySelector('.preview-section');
     if (previewSection) {
       const actions = document.createElement('div');
       actions.className = 'actions';
