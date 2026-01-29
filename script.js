@@ -187,12 +187,19 @@ if (watermarkInput && cardWatermark) {
       cardWatermark.innerHTML = '';
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const opacity = watermarkOpacity ? watermarkOpacity.value : 30;
-      cardWatermark.innerHTML = '<img src="' + reader.result + '" alt="">';
-      cardWatermark.style.opacity = (opacity / 100).toString();
-    };
+    const cardAvatar = document.querySelector('.card-avatar');
+
+reader.onload = () => {
+  avatarPreview.src = reader.result;
+  avatarPreview.alt = 'アバター';
+  avatarPreview.style.display = 'block';
+  if (avatarPlaceholder) avatarPlaceholder.style.display = 'none';
+
+  // 追加：background-image にも設定（html2canvas対策）
+  if (cardAvatar) {
+    cardAvatar.style.backgroundImage = `url("${reader.result}")`;
+  }
+};
     reader.readAsDataURL(file);
   });
 }
