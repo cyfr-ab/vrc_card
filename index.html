@@ -20,73 +20,7 @@
       <section class="editor">
         <h2>入力フォーム</h2>
         <form id="cardForm" class="form">
-          <div class="form-group">
-            <label for="avatarInput">アバター画像</label>
-            <div class="avatar-input-wrap">
-              <input type="file" id="avatarInput" accept="image/*" class="avatar-input">
-              <span class="avatar-hint">PNG / JPG（画像で保存する場合はアップロード推奨）</span>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="watermarkInput">背景用画像（透かし）</label>
-            <div class="avatar-input-wrap">
-              <input type="file" id="watermarkInput" accept="image/*" class="avatar-input">
-              <div class="watermark-opacity-wrap">
-                <label for="watermarkOpacity">透過度 <span id="watermarkOpacityValue">30</span>%</label>
-                <input type="range" id="watermarkOpacity" min="5" max="80" value="30" class="opacity-range">
-              </div>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="vrName">VRChat名 <span class="required">*</span></label>
-            <input type="text" id="vrName" placeholder="あなたのユーザー名" required>
-          </div>
-          <div class="form-group">
-            <label for="pronouns">代名詞 (Pronouns)</label>
-            <input type="text" id="pronouns" placeholder="例: he/him, she/her, they/them">
-          </div>
-          <div class="form-group">
-            <label>ステータス（話し方・コミュニケーション）</label>
-            <p class="tag-hint">該当するものを選んでください（複数可）</p>
-            <div class="status-tags" id="statusTagList" role="group" aria-label="ステータスタグ">
-              <label class="tag-choice"><input type="checkbox" name="status" value="無言勢"> 無言勢</label>
-              <label class="tag-choice"><input type="checkbox" name="status" value="たまに喋る"> たまに喋る</label>
-              <label class="tag-choice"><input type="checkbox" name="status" value="普通に喋る"> 普通に喋る</label>
-              <label class="tag-choice"><input type="checkbox" name="status" value="ガチ勢"> ガチ勢</label>
-              <label class="tag-choice"><input type="checkbox" name="status" value="テキスト多め"> テキスト多め</label>
-              <label class="tag-choice"><input type="checkbox" name="status" value="ボイス多め"> ボイス多め</label>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="oneLiner">一言・自己紹介</label>
-            <textarea id="oneLiner" rows="2" placeholder="簡単な自己紹介や挨拶"></textarea>
-          </div>
-          <div class="form-group">
-            <label for="activeTime">活動時間帯</label>
-            <input type="text" id="activeTime" placeholder="例: 夜21時〜、土日メイン">
-          </div>
-          <div class="form-group">
-            <label for="favorite">好きなワールド・アバター</label>
-            <textarea id="favorite" rows="2" placeholder="好きなワールドやアバターのジャンル"></textarea>
-          </div>
-          <div class="form-group">
-            <label for="friendRequest">フレンド申請</label>
-            <input type="text" id="friendRequest" placeholder="例: 一言いただければOK、気軽にどうぞ">
-          </div>
-          <div class="form-group">
-            <label for="hobby">趣味・興味</label>
-            <input type="text" id="hobby" placeholder="例: 音楽、ゲーム、アバター制作">
-          </div>
-          <div class="form-row theme-row">
-            <label>カードのテーマ</label>
-            <div class="theme-buttons">
-              <button type="button" class="theme-btn active" data-theme="modern">ライト</button>
-              <button type="button" class="theme-btn" data-theme="industrial">ダーク</button>
-              <button type="button" class="theme-btn" data-theme="fantasy">エレガント</button>
-              <button type="button" class="theme-btn" data-theme="kawaii">ふわふわ</button>
-              <button type="button" class="theme-btn" data-theme="chocolate">チョコレート</button>
-            </div>
-          </div>
+          <!-- （中身はあなたのHTMLそのまま） -->
         </form>
       </section>
 
@@ -94,10 +28,10 @@
         <h2>プレビュー（3:4 縦長）</h2>
         <div class="preview-wrap">
           <div id="cardPreview" class="card modern deco-none">
-            <div class="card-watermark" id="cardWatermark" aria-hidden="true"></div>
+            <div class="card-watermark" id="cardWatermark"></div>
             <div class="card-inner">
               <div class="card-avatar">
-                <img id="avatarPreview" src="" alt="" class="avatar-img" style="display: none;">
+                <img id="avatarPreview" class="avatar-img" style="display:none;">
                 <div id="avatarPlaceholder" class="avatar-placeholder">画像を選択</div>
               </div>
               <div class="card-content">
@@ -119,8 +53,14 @@
                 <div id="statusTagsPreview" class="status-tags-preview"></div>
               </div>
             </div>
-            <div class="card-decoration" id="cardDecoration" aria-hidden="true"></div>
+            <div class="card-decoration"></div>
           </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="screenshotBtn" class="btn btn-primary">
+            スクショ用に開く
+          </button>
         </div>
       </section>
     </main>
@@ -130,6 +70,134 @@
     </footer>
   </div>
 
-  <script src="script.js"></script>
+<script>
+/* ===============================
+   プレビュー同期 + スクショ用ポップアップ
+   =============================== */
+
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  const fields = {
+    vrName: $('vrName'),
+    pronouns: $('pronouns'),
+    oneLiner: $('oneLiner'),
+    activeTime: $('activeTime'),
+    favorite: $('favorite'),
+    friendRequest: $('friendRequest'),
+    hobby: $('hobby'),
+  };
+
+  const preview = {
+    name: $('previewName'),
+    pronouns: $('previewPronouns'),
+    oneLiner: $('previewOneLiner'),
+    activeTime: $('previewActiveTime'),
+    favorite: $('previewFavorite'),
+    friendRequest: $('previewFriendRequest'),
+    hobby: $('previewHobby'),
+  };
+
+  const avatarInput = $('avatarInput');
+  const avatarPreview = $('avatarPreview');
+  const avatarPlaceholder = $('avatarPlaceholder');
+  const cardPreview = $('cardPreview');
+  const statusTagList = $('statusTagList');
+  const statusTagsPreview = $('statusTagsPreview');
+  const themeButtons = document.querySelectorAll('.theme-btn');
+  const screenshotBtn = $('screenshotBtn');
+
+  const labels = {
+    oneLiner: '一言',
+    activeTime: '活動時間',
+    favorite: '好きなワールド・アバター',
+    friendRequest: 'フレンド申請',
+    hobby: '趣味・興味',
+  };
+
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function wrapLine(label, value) {
+    if (!value || !value.trim()) return '';
+    return `<span class="label">${label}</span>${escapeHtml(value.trim())}`;
+  }
+
+  function updatePreview() {
+    preview.name.textContent = fields.vrName.value || 'VRChat名';
+    preview.pronouns.textContent = fields.pronouns.value || '';
+    preview.pronouns.style.display = preview.pronouns.textContent ? 'block' : 'none';
+
+    preview.oneLiner.innerHTML = wrapLine(labels.oneLiner, fields.oneLiner.value);
+    preview.activeTime.innerHTML = wrapLine(labels.activeTime, fields.activeTime.value);
+    preview.favorite.innerHTML = wrapLine(labels.favorite, fields.favorite.value);
+    preview.friendRequest.innerHTML = wrapLine(labels.friendRequest, fields.friendRequest.value);
+    preview.hobby.innerHTML = wrapLine(labels.hobby, fields.hobby.value);
+
+    statusTagsPreview.innerHTML = '';
+    statusTagList.querySelectorAll('input:checked').forEach(cb => {
+      const s = document.createElement('span');
+      s.className = 'status-chip';
+      s.textContent = cb.value;
+      statusTagsPreview.appendChild(s);
+    });
+  }
+
+  Object.values(fields).forEach(el => {
+    el?.addEventListener('input', updatePreview);
+    el?.addEventListener('change', updatePreview);
+  });
+  statusTagList?.addEventListener('change', updatePreview);
+
+  avatarInput?.addEventListener('change', e => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      avatarPreview.src = r.result;
+      avatarPreview.style.display = 'block';
+      avatarPlaceholder.style.display = 'none';
+    };
+    r.readAsDataURL(f);
+  });
+
+  themeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      themeButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      cardPreview.className = 'card ' + btn.dataset.theme + ' deco-none';
+    });
+  });
+
+  screenshotBtn.addEventListener('click', async () => {
+    if (document.fonts?.ready) await document.fonts.ready;
+
+    const win = window.open('', '_blank', 'width=980,height=1400');
+    if (!win) return alert('ポップアップがブロックされました');
+
+    const clone = cardPreview.cloneNode(true);
+    clone.style.width = '900px';
+    clone.style.height = '1200px';
+    clone.style.maxWidth = 'none';
+    clone.style.aspectRatio = 'auto';
+
+    win.document.write(`
+      <html><head><title>スクショ用</title>
+      <link rel="stylesheet" href="${location.origin + location.pathname.replace(/\/[^/]+$/, '')}/style.css">
+      </head>
+      <body style="margin:0;display:grid;place-items:center;background:#eee">
+      </body></html>
+    `);
+    win.document.close();
+    win.document.body.appendChild(clone);
+  });
+
+  updatePreview();
+})();
+</script>
+
 </body>
 </html>
