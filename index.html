@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VRChat 自己紹介カードメーカー</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Orbitron:wght@600&family=Cinzel:wght@600&family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1>VRChat 自己紹介カードメーカー</h1>
+      <p class="subtitle">縦長 3:4 カード。背景透かし・縁装飾・チェック柄などでアレンジできます。</p>
+    </header>
+
+    <main class="main">
+      <section class="editor">
+        <h2>入力フォーム</h2>
+        <form id="cardForm" class="form">
+          <div class="form-group">
+            <label for="avatarInput">アバター画像</label>
+            <div class="avatar-input-wrap">
+              <input type="file" id="avatarInput" accept="image/*" class="avatar-input">
+              <span class="avatar-hint">PNG / JPG（画像で保存する場合はアップロード推奨）</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="watermarkInput">背景用画像（透かし）</label>
+            <div class="avatar-input-wrap">
+              <input type="file" id="watermarkInput" accept="image/*" class="avatar-input">
+              <div class="watermark-opacity-wrap">
+                <label for="watermarkOpacity">透過度 <span id="watermarkOpacityValue">30</span>%</label>
+                <input type="range" id="watermarkOpacity" min="5" max="80" value="30" class="opacity-range">
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="vrName">VRChat名 <span class="required">*</span></label>
+            <input type="text" id="vrName" placeholder="あなたのVR名" required>
+          </div>
+          <div class="form-group">
+            <label for="pronouns">代名詞 (Pronouns)</label>
+            <input type="text" id="pronouns" placeholder="例: he/him, she/her, they/them">
+          </div>
+          <div class="form-group">
+            <label>ステータス（話し方・コミュニケーション）</label>
+            <p class="tag-hint">該当するものを選んでください（複数可）</p>
+            <div class="status-tags" id="statusTagList" role="group" aria-label="ステータスタグ">
+              <label class="tag-choice"><input type="checkbox" name="status" value="無言勢"> 無言勢</label>
+              <label class="tag-choice"><input type="checkbox" name="status" value="たまに喋る"> たまに喋る</label>
+              <label class="tag-choice"><input type="checkbox" name="status" value="普通に喋る"> 普通に喋る</label>
+              <label class="tag-choice"><input type="checkbox" name="status" value="ガチ勢"> ガチ勢</label>
+              <label class="tag-choice"><input type="checkbox" name="status" value="テキスト多め"> テキスト多め</label>
+              <label class="tag-choice"><input type="checkbox" name="status" value="ボイス多め"> ボイス多め</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="oneLiner">一言・自己紹介</label>
+            <textarea id="oneLiner" rows="2" placeholder="簡単な自己紹介や挨拶"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="activeTime">活動時間帯</label>
+            <input type="text" id="activeTime" placeholder="例: 夜21時〜、土日メイン">
+          </div>
+          <div class="form-group">
+            <label for="favorite">好きなワールド・アバター</label>
+            <textarea id="favorite" rows="2" placeholder="好きなワールドやアバターのジャンル"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="friendRequest">フレンド申請</label>
+            <input type="text" id="friendRequest" placeholder="例: 一言いただければOK、気軽にどうぞ">
+          </div>
+          <div class="form-group">
+            <label for="hobby">趣味・興味</label>
+            <input type="text" id="hobby" placeholder="例: 音楽、ゲーム、アバター制作">
+          </div>
+          <div class="form-row theme-row">
+            <label>カードのテーマ</label>
+            <div class="theme-buttons">
+              <button type="button" class="theme-btn active" data-theme="modern">モダン</button>
+              <button type="button" class="theme-btn" data-theme="industrial">インダストリアル</button>
+              <button type="button" class="theme-btn" data-theme="fantasy">ファンタジー</button>
+              <button type="button" class="theme-btn" data-theme="kawaii">Kawaii</button>
+              <button type="button" class="theme-btn" data-theme="chocolate">チョコレート</button>
+            </div>
+          </div>
+          <div class="form-row decoration-row">
+            <label>縁の装飾</label>
+            <div class="decoration-buttons">
+              <button type="button" class="decoration-btn active" data-decoration="none">なし</button>
+              <button type="button" class="decoration-btn" data-decoration="ribbon-br">右下リボン</button>
+              <button type="button" class="decoration-btn" data-decoration="ribbon-corners">四隅リボン</button>
+              <button type="button" class="decoration-btn" data-decoration="frame">枠のみ</button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section class="preview-section">
+        <h2>プレビュー（3:4 縦長）</h2>
+        <div class="preview-wrap">
+          <div id="cardPreview" class="card modern deco-none">
+            <div class="card-watermark" id="cardWatermark" aria-hidden="true"></div>
+            <div class="card-inner">
+              <div class="card-avatar">
+                <img id="avatarPreview" src="" alt="" class="avatar-img" style="display: none;">
+                <div id="avatarPlaceholder" class="avatar-placeholder">画像を選択</div>
+              </div>
+              <div class="card-content">
+                <div class="card-header">
+                  <span class="card-badge">VRChat</span>
+                  <h3 id="previewName" class="card-name">VRChat名</h3>
+                  <p id="previewPronouns" class="card-pronouns"></p>
+                </div>
+                <div class="card-body">
+                  <div id="previewOneLiner" class="card-line item"></div>
+                  <div id="previewActiveTime" class="card-line item"></div>
+                  <div id="previewFavorite" class="card-line item"></div>
+                  <div id="previewFriendRequest" class="card-line item"></div>
+                  <div id="previewHobby" class="card-line item"></div>
+                </div>
+              </div>
+              <div class="card-status">
+                <span class="card-status-label">ステータス</span>
+                <div id="statusTagsPreview" class="status-tags-preview"></div>
+              </div>
+            </div>
+            <div class="card-decoration" id="cardDecoration" aria-hidden="true"></div>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="button" id="downloadBtn" class="btn btn-primary">画像で保存</button>
+          <button type="button" id="copyTextBtn" class="btn btn-secondary">テキストをコピー</button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>VRChat 自己紹介カードメーカー — Twitter・オフ会用</p>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
