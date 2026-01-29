@@ -98,8 +98,33 @@ function updatePreview() {
   updateStatusTagsPreview();
 }
 
-// アバター画像: ファイル選択 → Data URL で表示（画像保存時に確実に含まれるように）
-avatarInput.addEventListener('change', (e) => {
+function loadImageAsSquareDataURL(file, size = 1024) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      const sw = img.naturalWidth;
+      const sh = img.naturalHeight;
+
+      // cover crop（短辺に合わせて中央を切り抜く）
+      const s = Math.min(sw, sh);
+      const sx = Math.floor((sw - s) / 2);
+      const sy = Math.floor((sh - s) / 2);
+
+      ctx.drawImage(img, sx, sy, s, s, 0, 0, size, size);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => reject(new Error('アバター画像の読み込みに失敗しました'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// アバター画像: ファイル選択 → 正方形クロップDataURLで表示（保存時に潰れない）
+avatarInput.addEventListener('change', async (e) => {
   const file = e.target.files && e.target.files[0];
   if (!file || !file.type.startsWith('image/')) {
     avatarPreview.style.display = 'none';
@@ -107,15 +132,18 @@ avatarInput.addEventListener('change', (e) => {
     if (avatarPlaceholder) avatarPlaceholder.style.display = 'block';
     return;
   }
-  const reader = new FileReader();
-  reader.onload = () => {
-    avatarPreview.src = reader.result;
+
+  try {
+    const dataUrl = await loadImageAsSquareDataURL(file, 1024);
+    avatarPreview.src = dataUrl;
     avatarPreview.alt = 'アバター';
     avatarPreview.style.display = 'block';
     if (avatarPlaceholder) avatarPlaceholder.style.display = 'none';
-  };
-  reader.readAsDataURL(file);
+  } catch (err) {
+    alert(err.message || err);
+  }
 });
+
 
 // テーマ・装飾のクラスを組み立て（縦長カード用）
 function getCardBaseClasses() {
